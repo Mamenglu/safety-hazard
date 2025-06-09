@@ -146,7 +146,7 @@ def analyze_image_security_risks(image_path, lang="ch"):
         "ch": "请对图片中的主要安全隐患进行分析，每个隐患请严格按照以下格式逐条输出，换行分隔，不要添加多余内容：\n关键字：xxx\n安全隐患类型：xxx\n安全隐患内容：xxx\n安全隐患位置：xxx\n措施：xxx\n\n如果有多个隐患请依次列出，每组之间空一行。",
         "en": "Please analyze the main safety hazards in the image. For each hazard, strictly follow this format, one line per item, no extra content:\nKeyword: xxx\nHazard Type: xxx\nHazard Description: xxx\nHazard Location: xxx\nMeasures: xxx\n\nList multiple hazards in order, separated by a blank line.",
         # "ja": "画像に含まれる主な安全上のリスクを分析してください。\n\n【出力形式の厳守】\n- 各リスクについて、以下の形式に従ってください。\n- 項目名の前には記号や番号を付けず、「キーワード：」のようにそのまま書いてください。\n- 「-」や「1.」「①」などの記号は絶対に使わないでください。\n- 各リスクは空行で区切って列挙してください。\n- 出力は日本語でお願いします。\n\n【フォーマット】\nキーワード：xxx\n危険の種類：xxx\n危険の内容：xxx\n危険の場所：xxx\n対策：xxx",
-        "ja": "画像に含まれる主な安全上のリスクを分析してください。各リスクについて、以下の形式に従ってください（各項目ごとに改行、余計な内容は不要）：\nキーワード：xxx\n危険の種類：xxx\n危険の内容：xxx\n危険の場所：xxx\n対策：xxx\n\n複数ある場合は、空行で区切って順に列挙してください。すべて日本語で記述してください。",
+        "ja": "画像に含まれる主な安全上のリスクを分析してください。各リスクについて、以下の形式に従ってください（各項目ごとに改行、余計な内容は不要）：\nキーワード：xxx\n危険の種類：xxx\n危険の内容：xxx\n危険の場所：xxx\n対策：xxx\n\n複数ある場合は、空行で区切って順に列挙してください。",
         "ar": "يرجى تحليل المخاطر الرئيسية في الصورة. لكل خطر، يرجى اتباع التنسيق التالي بدقة، سطر لكل عنصر، دون محتوى إضافي:\nالكلمة المفتاحية: xxx\nنوع الخطر: xxx\nوصف الخطر: xxx\nموقع الخطر: xxx\nالإجراءات: xxx\n\nإذا كانت هناك مخاطر متعددة، يرجى سردها واحدة تلو الأخرى، مفصولة بسطر فارغ."
     }
 
