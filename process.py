@@ -62,45 +62,7 @@ def get_name():
     file_name = f'{time_str}'  # 你可以将 .txt 替换为其他扩展名，如 .csv、.log 等
     return file_name
 
-def convert_to_json(text, image_path, ans="_1.jpg", is_pano=False, lang="ch"):
-    # 不同语言的字段映射
-    field_map = {
-        "ch": {
-            "1": "关键字",
-            "2": "安全隐患类型",
-            "3": "安全隐患内容",
-            "4": "安全隐患位置",
-            "5": "措施"
-        },
-        "en": {
-            "1": "Keyword",
-            "2": "Hazard Type",
-            "3": "Hazard Description",
-            "4": "Hazard Location",
-            "5": "Measures"
-        },
-        "ja": {
-            "1": "キーワード",
-            "2": "危険の種類",
-            "3": "危険の内容",
-            "4": "危険の場所",
-            "5": "対策"
-        },
-        "ar": {
-            "1": "الكلمة المفتاحية",
-            "2": "نوع الخطر",
-            "3": "وصف الخطر",
-            "4": "موقع الخطر",
-            "5": "الإجراءات"
-        }
-    }
-
-    if lang not in field_map:
-        print(f"未知语言类型：{lang}，默认使用中文")
-        lang = "ch"
-
-    fields = field_map[lang]
-
+def convert_to_json(text, image_path, ans="_1.jpg", is_pano=False):
     entries = re.split(r'\n\s*\n', text.strip())
     json_data_list = []
 
@@ -115,6 +77,7 @@ def convert_to_json(text, image_path, ans="_1.jpg", is_pano=False, lang="ch"):
     base64_image = image_to_base64(compressed_image_path)
     print(f"压缩后图片Base64字符串长度: {len(base64_image)}")
 
+    # 只保留需要数量的 entries
     if is_pano:
         entries = entries[:1]
     else:
@@ -132,45 +95,30 @@ def convert_to_json(text, image_path, ans="_1.jpg", is_pano=False, lang="ch"):
         }
 
         for line in lines:
-            line = line.strip()
-            for num, key in fields.items():
-                if line.startswith(f"{key}：") or line.startswith(f"{key}:"):
-                    value = line.split("：", 1)[-1] if "：" in line else line.split(":", 1)[-1]
-                    value = value.strip()
-                    if num == "1":
-                        json_data["dangerTopic"] = value
-                    elif num == "2":
-                        json_data["dangerType"] = value
-                    elif num == "3":
-                        json_data["dangerContent"] = value
-                    elif num == "4":
-                        json_data["dangerLocation"] = value
-                    elif num == "5":
-                        json_data["measure"] = value
-
+            if line.startswith('1. 关键字'):
+                json_data["dangerTopic"] = line.split('：')[1].strip()
+            elif line.startswith('2. 安全隐患类型'):
+                json_data["dangerType"] = line.split('：')[1].strip()
+            elif line.startswith('3. 安全隐患内容'):
+                json_data["dangerContent"] = line.split('：')[1].strip()
+            elif line.startswith('4. 安全隐患位置'):
+                json_data["dangerLocation"] = line.split('：')[1].strip()
+            elif line.startswith('5. 措施'):
+                json_data["measure"] = line.split('：')[1].strip()
 
         if all(json_data[k] for k in ["dangerTopic", "dangerType", "dangerContent", "dangerLocation", "measure"]):
             json_data_list.append(json_data)
 
     return json_data_list
 
-def analyze_image_security_risks(image_path, lang="ch"):
+def analyze_image_security_risks(image_path):
     image = Image.open(image_path)
-
-    prompts = {
-        "ch": "请对图片中的主要安全隐患进行分析，每个隐患请严格按照以下格式逐条输出，换行分隔，不要添加多余内容：\n关键字：xxx\n安全隐患类型：xxx\n安全隐患内容：xxx\n安全隐患位置：xxx\n措施：xxx\n\n如果有多个隐患请依次列出，每组之间空一行。",
-        "en": "Please analyze the main safety hazards in the image. For each hazard, strictly follow this format, one line per item, no extra content:\nKeyword: xxx\nHazard Type: xxx\nHazard Description: xxx\nHazard Location: xxx\nMeasures: xxx\n\nList multiple hazards in order, separated by a blank line.",
-        "ja": "画像に含まれる主な安全上のリスクを分析してください。各リスクについて、以下の形式に従ってください（各項目ごとに改行、余計な内容は不要）：\nキーワード：xxx\n危険の種類：xxx\n危険の内容：xxx\n危険の場所：xxx\n対策：xxx\n\n複数ある場合は、空行で区切って順に列挙してください。",
-        "ar": "يرجى تحليل المخاطر الرئيسية في الصورة. لكل خطر، يرجى اتباع التنسيق التالي بدقة، سطر لكل عنصر، دون محتوى إضافي:\nالكلمة المفتاحية: xxx\nنوع الخطر: xxx\nوصف الخطر: xxx\nموقع الخطر: xxx\nالإجراءات: xxx\n\nإذا كانت هناك مخاطر متعددة، يرجى سردها واحدة تلو الأخرى، مفصولة بسطر فارغ."
-    }
-
-    prompt = prompts.get(lang, prompts["ch"])
-
     messages = [({
         "role": "user",
         "content": [
             {"type": "image"},
-            {"type": "text", "text": prompt}
+            # {"type": "text", "text": "请识别图片中的安全隐患，并提供针对每个隐患的整改建议。每个隐患请严格按照以下格式逐条输出，换行分隔，不要返回重复内容：\n 1. 关键字：xxx\n 2. 安全隐患类型：xxx\n 3. 安全隐患内容：xxx\n 4. 安全隐患位置：xxx\n 5. 措施：xxx\n,每个隐患之间空一行。"}
+            {"type": "text", "text": "请对图片中的主要安全隐患进行分析，每个隐患请严格按照以下格式逐条输出，换行分隔，不要添加多余内容：\n1. 关键字：xxx\n2. 安全隐患类型：xxx\n3. 安全隐患内容：xxx\n4. 安全隐患位置：xxx\n5. 措施：xxx\n\n如果有多个隐患请依次列出，每组之间空一行。"}
         ]
     })]
 
@@ -183,24 +131,23 @@ def analyze_image_security_risks(image_path, lang="ch"):
     output = model.generate(**generate_kwargs, max_new_tokens=1000)
     result = tokenizer.decode(output[0][len(inputs["input_ids"][0]):], skip_special_tokens=True)
 
-    # 保存结果到本地
-    image_name = os.path.basename(image.filename)
+    # 获取图片文件名并生成保存结果的路径
+    image_name = os.path.basename(image.filename)  # 获取图片文件名
+    image_name_without_ext = os.path.splitext(image_name)[0]  # 去掉扩展名
     folder_path = "./results"
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
-    random_filename = str(uuid.uuid4())
+    # 生成一个随机的唯一文件名
+    random_filename = str(uuid.uuid4())  # 使用uuid生成唯一的文件名
     file_path = os.path.join(folder_path, f"{random_filename}_result.txt")
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(result)
-
     return result.strip()
 
 def process_image_and_callback(image_url, callback_url, data):
     try:
         image_type = data.get('image_type', '01')
-        lang = data.get('lang', 'ch')  # 默认中文
-
         results = []
 
         if image_type == "02" or image_type == 2:
@@ -213,19 +160,17 @@ def process_image_and_callback(image_url, callback_url, data):
             cv2.imwrite(front_path, front)
             cv2.imwrite(back_path, back)
 
-            result_front = analyze_image_security_risks(front_path, lang)
-            result_back = analyze_image_security_risks(back_path, lang)
+            result_front = analyze_image_security_risks(front_path)
+            result_back = analyze_image_security_risks(back_path)
 
-            json1 = convert_to_json(result_front.replace(":", "："), front_path, "_1.jpg", is_pano=True, lang=lang)
-            json2 = convert_to_json(result_back.replace(":", "："), back_path, "_2.jpg", is_pano=True, lang=lang)
+            json1 = convert_to_json(result_front.replace(":", "："), front_path, "_1.jpg", is_pano=True)
+            json2 = convert_to_json(result_back.replace(":", "："), back_path, "_2.jpg", is_pano=True)
 
             final_result = json1 + json2
 
         else:
-            result = analyze_image_security_risks(image_url, lang)
-            final_result = convert_to_json(result.replace(":", "："), image_url, is_pano=False, lang=lang)
-
-        # 回调逻辑不变...
+            result = analyze_image_security_risks(image_url)
+            final_result = convert_to_json(result.replace(":", "："), image_url, is_pano=False)
 
         response_data = json.dumps(final_result, ensure_ascii=False)
         # print("回调数据：", response_data)
@@ -276,7 +221,7 @@ def process_new_json_files():
 
                 image_url = data.get('image_path')
                 callback_url = data.get('callback_url')
-                # lang = data.get('lang')
+
                 if image_url and callback_url:
                     process_image_and_callback(image_url, callback_url, data)
                     processed_files.add(json_file)
@@ -298,3 +243,4 @@ def start_file_watcher():
 
 if __name__ == '__main__':
     start_file_watcher()
+
