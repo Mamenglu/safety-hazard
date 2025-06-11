@@ -13,6 +13,7 @@ import cv2
 import base64
 from distortion_correction import Insta360InspProcessor  # 畸变校正类
 import datetime
+from deep_translator import GoogleTranslator
 
 model_dir = "/home/ubuntu/GLM-Edge/glm-edge-v-5b"
 
@@ -50,6 +51,16 @@ def compress_image(image_path, output_path, quality=50):
         # 保存压缩后的图片
         img.save(output_path, format="JPEG", quality=quality)
         print(f"图片已压缩并保存到 {output_path}")
+
+def translate_entry(entry, target_lang):
+    translated_entry = entry.copy()
+    fields_to_translate = ["dangerTopic", "dangerType", "dangerContent", "dangerLocation", "measure"]
+    for field in fields_to_translate:
+        try:
+            translated_entry[field] = GoogleTranslator(source='zh-CN', target=target_lang).translate(entry[field])
+        except Exception as e:
+            print(f"翻译字段 {field} 时出错: {str(e)}")
+    return translated_entry
 
 def get_name():
     # 获取当前时间
@@ -172,6 +183,10 @@ def process_image_and_callback(image_url, callback_url, data):
             result = analyze_image_security_risks(image_url)
             final_result = convert_to_json(result.replace(":", "："), image_url, is_pano=False)
 
+        target_lang = data.get("lang")  # "en", "ja", "ar" 等
+        if target_lang in ["en", "ja", "ar"]:
+            print(f"检测到语言参数: {target_lang}，开始翻译...")
+            final_result = [translate_entry(entry, target_lang) for entry in final_result]
         response_data = json.dumps(final_result, ensure_ascii=False)
         # print("回调数据：", response_data)
         debug_result = []
